@@ -613,7 +613,7 @@ static void MX_TIM1_Init(void)
 {
 
   /* USER CODE BEGIN TIM1_Init 0 */
-
+ 
   /* USER CODE END TIM1_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
@@ -1006,9 +1006,9 @@ void Get_FB_FUN(void)
 				Short_circuit_signal=1;
 			}
 			
-//			//BBR TogglePin
-//			if(edge_count_it>75){
-//				if((edge_count_it+1)%26==0)
+//			//BBR 
+//			if(edge_count_it>(220-Gas_a.weld_vslope*6)&&Gas_a.weld_vslope>0){
+//				if((edge_count_it+2)%26==0)
 //					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
 //				if(edge_count_it%26==0)
 //					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
@@ -1022,8 +1022,8 @@ void Get_FB_FUN(void)
 			if(edge_count_it<10)       //10-¡·5-¡·10  3.25 3.26
 					edge_count_it++;
 			else{
-				if(Gas_a.weld_Inductor>20){     //40->20  3.26
-					EPWM_TEMP=Gas_a.weld_Inductor-20;    //40->20  3.26
+				if(Gas_a.weld_Inductor>10){     //40->20  3.26
+					EPWM_TEMP=Gas_a.weld_Inductor*5/8;    //40->20  3.26
 					htim1.Instance->CCR2=EPWM_TEMP;
 				}
 				else{

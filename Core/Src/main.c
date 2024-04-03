@@ -986,7 +986,7 @@ void Get_FB_FUN(void)
 		
 		if(DOWN_edge_signal==1){
 			//VOL PLUS
-			if(FB_OUTI_NUM>200){
+			if(FB_OUTI_NUM>10){
 				if(edge_count_it<2)      //10-¡·4-¡·2--3.25
 					HAL_DAC_SetValue(&hdac,DAC_CHANNEL_1,DAC_ALIGN_12B_R,Gas_a.weld_volt);
 				else {
@@ -1006,13 +1006,13 @@ void Get_FB_FUN(void)
 				Short_circuit_signal=1;
 			}
 			
-//			//BBR 
-//			if(edge_count_it>(220-Gas_a.weld_vslope*6)&&Gas_a.weld_vslope>0){
-//				if((edge_count_it+2)%26==0)
-//					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
-//				if(edge_count_it%26==0)
-//					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
-//			}
+			//BBR 
+			if(edge_count_it>(220-Gas_a.weld_vslope*6)&&Gas_a.weld_vslope>0){
+				if((edge_count_it+2)%26==0)
+					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
+				if(edge_count_it%26==0)
+					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
+			}
 			
 			edge_count_it++;	
 		}
@@ -1080,14 +1080,15 @@ void Get_SP_FUN()
 		Gas_a.weld_vslope=GMAW_GAS_VSLOPE[ST_FPWM_ADJUST/4];
 		
 		
-		if(ST_OTDA_NUM>=1267)
-			Gas_a.weld_volt=Gas_a.weld_volt+(ST_OTDA_NUM-1267)*11/8;
+		if(ST_OTDA_NUM>=845)
+			Gas_a.weld_volt=Gas_a.weld_volt+(ST_OTDA_NUM-845)/3;
 		else{
-			if(Gas_a.weld_volt>1267-ST_OTDA_NUM)
-				Gas_a.weld_volt=Gas_a.weld_volt-(1267-ST_OTDA_NUM)*11/8;
+			if(Gas_a.weld_volt>845-ST_OTDA_NUM)
+				Gas_a.weld_volt=Gas_a.weld_volt-(845-ST_OTDA_NUM)/3;
 			else
 				Gas_a.weld_volt=0;
-		}		
+		}	
+		
 		if(ST_EPWM_NUM>2000){
 			ST_EPWM_ADJUST=(ST_EPWM_NUM-2000)/20;
 			Gas_a.weld_Inductor=ST_EPWM_Container+ST_EPWM_ADJUST;
@@ -1100,6 +1101,7 @@ void Get_SP_FUN()
 			else
 				Gas_a.weld_Inductor=ST_EPWM_Container-ST_EPWM_ADJUST;
 		}
+		
 	
 	}
 	
@@ -1290,7 +1292,7 @@ void Switch_State_FUN()
 				State_Delay_contain=State_Delay_count;
 			}
 			if((State_Delay_count==100+Gas_a.weld_volt/2)||(FB_OUTI_NUM<1200))
-		   	inter_arc_signal=1;
+				inter_arc_signal=1;
 			if(inter_arc_signal==1){
 				State_Delay_count++;
 				if((State_Delay_count-State_Delay_contain>=150)&&FB_OUTI_NUM<200){
@@ -1300,7 +1302,7 @@ void Switch_State_FUN()
 					}
 					else{
 						GMAW_State++;
-  					ALLSTATE_Set ^= 0x0020;
+						ALLSTATE_Set ^= 0x0020;
 						State_Delay_count=0;
 						inter_arc_signal=0;
 					}

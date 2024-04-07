@@ -113,6 +113,7 @@ uint8_t UP_edge_signal=0;		//SA上升沿判断
 uint8_t DOWN_edge_signal=0;		//SA下降沿判断
 uint8_t Wave_control_signal=1;	//波形控制标识符
 uint8_t Short_circuit_signal=0;
+uint8_t Weld_Wire_Set=0;		//焊丝选取标志
 
 //------------FB----------
 uint16_t FB_FIEP[5]={0};		
@@ -168,15 +169,20 @@ float Vol_div = 0;
 float Res_div = 0;
 
  GAS_WELDING_DATA Gas_a;
+uint16_t* GMAW_GAS_Diam_Speed;
+uint16_t* GMAW_GAS_Diam_Volt;
+uint16_t* GMAW_GAS_Diam_Vc;
+uint8_t* GMAW_GAS_Diam_Inductor;
+uint8_t* GMAW_GAS_Diam_VSLOPE;
 
 
-uint8_t i2c_temp=0;
-HAL_StatusTypeDef i2c_state=0;
-uint8_t i2c_buffer_write[32]={0};
-uint8_t i2c_buffer_recive[32]={0};
-uint8_t uart_buffer_recive[32]={0};
+//uint8_t i2c_temp=0;
+//HAL_StatusTypeDef i2c_state=0;
+//uint8_t i2c_buffer_write[32]={0};
+//uint8_t i2c_buffer_recive[32]={0};
+//uint8_t uart_buffer_recive[32]={0};
 
-//volatile uint16_t FB_FIEP_Ave=0;
+
 uint16_t TM7_count_temp=0;
 uint16_t State_Delay_count=0;
 uint16_t Edge_Delay_count=0;
@@ -958,7 +964,7 @@ void Get_FB_FUN(void)
 	
 	/* SA Function  */
 	if(Wave_control_signal==1){
-		if(FB_OUTV_NUM*5/4<Gas_a.weld_volt-700){		//500->600
+		if(FB_OUTV_NUM*5/4<Gas_a.weld_volt-650){		//750 +BBR 650
 			if(SA_Prev==1){
 				HAL_GPIO_WritePin(GPIOA,GPIO_PIN_7,GPIO_PIN_SET);
 			
@@ -1006,13 +1012,13 @@ void Get_FB_FUN(void)
 				Short_circuit_signal=1;
 			}
 			
-			//BBR 
-			if(edge_count_it>(220-Gas_a.weld_vslope*6)&&Gas_a.weld_vslope>0){
-				if((edge_count_it+2)%26==0)
-					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
-				if(edge_count_it%26==0)
-					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
-			}
+//			//BBR 
+//			if(edge_count_it>(220-Gas_a.weld_vslope*8) && Gas_a.weld_vslope>0 &&  Short_circuit_signal==0){
+//				if((edge_count_it+1)%10==0)
+//					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
+//				if(edge_count_it%10==0)
+//					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
+//			}
 			
 			edge_count_it++;	
 		}
@@ -1065,12 +1071,12 @@ void Get_SP_FUN()
 		ST_FPWM_ADJUST=(ST_FPWM_NUM*0.157f+5.73)/2-24;
 	else
 		ST_FPWM_ADJUST=0;
-	if(ST_FPWM_ADJUST>199) ST_FPWM_ADJUST=199;
+	if(ST_FPWM_ADJUST>196) ST_FPWM_ADJUST=196;
 	
 	//
 	
 	//take array form datesheet
-	if(1){
+	if(0){
 		Gas_a.weld_speed=
 		GMAW_GAS_Speed[ST_FPWM_ADJUST/4]+(GMAW_GAS_Speed[ST_FPWM_ADJUST/4+1]-GMAW_GAS_Speed[ST_FPWM_ADJUST/4])*(ST_FPWM_ADJUST%4)/4;
 		Gas_a.weld_volt=
@@ -1105,7 +1111,119 @@ void Get_SP_FUN()
 	
 	}
 	
+	if(1)
+	{
+		/******************************
+		PB10 ->LOW		PB11 ->HIGH		PC6->SYN_IN
+		0				0				0
+		
+			
+		000->	CO2_12
+		001->	CO2_10
+		010->	CO2_16
+		011->	MAG_10
+		100->	MAG_12
+		101->	MAG_16
+		110->	FLUX_12
+		111->	FLUX_16
+		
+		******************************/
+		if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_10)==GPIO_PIN_RESET)	Weld_Wire_Set |= 0b00000100;	else	Weld_Wire_Set &= 0b11111011;
+		if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_11)==GPIO_PIN_RESET)	Weld_Wire_Set |= 0b00000010;	else	Weld_Wire_Set &= 0b11111101;
+		if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_6)==GPIO_PIN_RESET)	Weld_Wire_Set |= 0b00000001;	else	Weld_Wire_Set &= 0b11111110;
 	
+		switch(Weld_Wire_Set)
+		{
+			case 0:
+				GMAW_GAS_Diam_Speed=GMAW_Wave_CO2_12_Speed;
+				GMAW_GAS_Diam_Volt=GMAW_Wave_CO2_12_Volt;
+				GMAW_GAS_Diam_Vc=GMAW_Wave_CO2_12_Vc;
+				GMAW_GAS_Diam_Inductor=GMAW_Wave_CO2_12_Inductor;
+				GMAW_GAS_Diam_VSLOPE=GMAW_Wave_CO2_12_VSLOPE;
+				break;
+			case 1:
+				GMAW_GAS_Diam_Speed=GMAW_Wave_CO2_10_Speed;
+				GMAW_GAS_Diam_Volt=GMAW_Wave_CO2_10_Volt;
+				GMAW_GAS_Diam_Vc=GMAW_Wave_CO2_10_Vc;
+				GMAW_GAS_Diam_Inductor=GMAW_Wave_CO2_10_Inductor;
+				GMAW_GAS_Diam_VSLOPE=GMAW_Wave_CO2_10_VSLOPE;
+				break;
+			case 2:
+				GMAW_GAS_Diam_Speed=GMAW_Wave_CO2_16_Speed;
+				GMAW_GAS_Diam_Volt=GMAW_Wave_CO2_16_Volt;
+				GMAW_GAS_Diam_Vc=GMAW_Wave_CO2_16_Vc;
+				GMAW_GAS_Diam_Inductor=GMAW_Wave_CO2_16_Inductor;
+				GMAW_GAS_Diam_VSLOPE=GMAW_Wave_CO2_16_VSLOPE; 
+				break;
+			case 3:
+				GMAW_GAS_Diam_Speed=GMAW_Wave_MAG_10_Speed;
+				GMAW_GAS_Diam_Volt=GMAW_Wave_MAG_10_Volt;
+				GMAW_GAS_Diam_Vc=GMAW_Wave_MAG_10_Vc;
+				GMAW_GAS_Diam_Inductor=GMAW_Wave_MAG_10_Inductor;
+				GMAW_GAS_Diam_VSLOPE=GMAW_Wave_MAG_10_VSLOPE; 
+				break;
+			case 4:
+				GMAW_GAS_Diam_Speed=GMAW_Wave_MAG_12_Speed;
+				GMAW_GAS_Diam_Volt=GMAW_Wave_MAG_12_Volt;
+				GMAW_GAS_Diam_Vc=GMAW_Wave_MAG_12_Vc;
+				GMAW_GAS_Diam_Inductor=GMAW_Wave_MAG_12_Inductor;
+				GMAW_GAS_Diam_VSLOPE=GMAW_Wave_MAG_12_VSLOPE; 
+				break;
+			case 5:
+				GMAW_GAS_Diam_Speed=GMAW_Wave_MAG_16_Speed;
+				GMAW_GAS_Diam_Volt=GMAW_Wave_MAG_16_Volt;
+				GMAW_GAS_Diam_Vc=GMAW_Wave_MAG_16_Vc;
+				GMAW_GAS_Diam_Inductor=GMAW_Wave_MAG_16_Inductor;
+				GMAW_GAS_Diam_VSLOPE=GMAW_Wave_MAG_16_VSLOPE; 
+				break;
+			case 6:
+				GMAW_GAS_Diam_Speed=GMAW_Flux_CO2_12_Speed;
+				GMAW_GAS_Diam_Volt=GMAW_Flux_CO2_12_Volt;
+				GMAW_GAS_Diam_Vc=GMAW_Flux_CO2_12_Vc;
+				GMAW_GAS_Diam_Inductor=GMAW_Flux_CO2_12_Inductor;
+				GMAW_GAS_Diam_VSLOPE=GMAW_Flux_CO2_12_VSLOPE; 
+				break;
+			case 7:
+				GMAW_GAS_Diam_Speed=GMAW_Flux_CO2_16_Speed;
+				GMAW_GAS_Diam_Volt=GMAW_Flux_CO2_16_Volt;
+				GMAW_GAS_Diam_Vc=GMAW_Flux_CO2_16_Vc;
+				GMAW_GAS_Diam_Inductor=GMAW_Flux_CO2_16_Inductor;
+				GMAW_GAS_Diam_VSLOPE=GMAW_Flux_CO2_16_VSLOPE;
+				break;
+		}
+		
+		Gas_a.weld_speed= 
+		GMAW_GAS_Diam_Speed[ST_FPWM_ADJUST/4]+(GMAW_GAS_Diam_Speed[ST_FPWM_ADJUST/4+1]-GMAW_GAS_Diam_Speed[ST_FPWM_ADJUST/4])*(ST_FPWM_ADJUST%4)/4;
+		Gas_a.weld_volt=
+		GMAW_GAS_Diam_Volt[ST_FPWM_ADJUST/4]+(GMAW_GAS_Diam_Volt[ST_FPWM_ADJUST/4+1]-GMAW_GAS_Diam_Volt[ST_FPWM_ADJUST/4])*(ST_FPWM_ADJUST%4)/4;
+		ST_EPWM_Container=GMAW_GAS_Diam_Inductor[ST_FPWM_ADJUST/4];
+		Gas_a.weld_vc=GMAW_GAS_Diam_Vc[ST_FPWM_ADJUST/4];
+		Gas_a.weld_vslope=GMAW_GAS_Diam_VSLOPE[ST_FPWM_ADJUST/4];
+		
+		
+		if(ST_OTDA_NUM>=845)
+			Gas_a.weld_volt=Gas_a.weld_volt+(ST_OTDA_NUM-845)/3;
+		else{
+			if(Gas_a.weld_volt>845-ST_OTDA_NUM)
+				Gas_a.weld_volt=Gas_a.weld_volt-(845-ST_OTDA_NUM)/3;
+			else
+				Gas_a.weld_volt=0;
+		}	
+		
+		if(ST_EPWM_NUM>2000){
+			ST_EPWM_ADJUST=(ST_EPWM_NUM-2000)/20;
+			Gas_a.weld_Inductor=ST_EPWM_Container+ST_EPWM_ADJUST;
+			if(Gas_a.weld_Inductor>200) Gas_a.weld_Inductor=200;
+		}
+		else{
+			ST_EPWM_ADJUST=(2000-ST_EPWM_NUM)/20;
+			if(ST_EPWM_ADJUST>ST_EPWM_Container)
+				Gas_a.weld_Inductor=0;
+			else
+				Gas_a.weld_Inductor=ST_EPWM_Container-ST_EPWM_ADJUST;
+		}
+	
+	}
 	
 	
 	
@@ -1361,7 +1479,7 @@ void Switch_State_FUN()
 //			HAL_DAC_SetValue(&hdac,DAC_CHANNEL_2,DAC_ALIGN_12B_R,(uint16_t)Res_div);
 			
 			//Vol PLUS	restore	
-			if(DOWN_edge_signal==0){
+			if(DOWN_edge_signal==0 && Short_circuit_signal==0){
 				HAL_DAC_SetValue(&hdac,DAC_CHANNEL_1,DAC_ALIGN_12B_R,Gas_a.weld_volt);
 				HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);	//deleta
 			}				
@@ -1515,9 +1633,9 @@ void Uart_Handler_FUN(void)
 	uint8_t i_sum=0;
 	uint32_t i2c_error=0;
 	
-	for(int i=0;i<8;i++)
-		i2c_buffer_write[i]=i+2;
-	
+//	for(int i=0;i<8;i++)
+//		i2c_buffer_write[i]=i+2;
+//	
 	/*
 		I2C device type identifier "1010"(A hex) in bits 7 through 4   ---> 1010 0000  =0xA0
 			

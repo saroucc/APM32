@@ -173,6 +173,65 @@ typedef enum{		//Control MCU state
 
 }GAS_WELDING_DATA;
 
+
+
+/*  CO2  1.0   */
+extern uint16_t GMAW_Wave_CO2_10_Speed[50];
+extern uint16_t GMAW_Wave_CO2_10_Volt[50];
+extern uint8_t  GMAW_Wave_CO2_10_Inductor[50];
+extern uint16_t GMAW_Wave_CO2_10_Vc[50];
+extern uint8_t  GMAW_Wave_CO2_10_VSLOPE[50];
+
+/* CO2 1.2  */
+extern uint16_t GMAW_Wave_CO2_12_Speed[50];
+extern uint16_t GMAW_Wave_CO2_12_Volt[50];
+extern uint8_t  GMAW_Wave_CO2_12_Inductor[50];
+extern uint16_t GMAW_Wave_CO2_12_Vc[50];
+extern uint8_t  GMAW_Wave_CO2_12_VSLOPE[50];
+
+/* CO2 1.6 */
+extern uint16_t GMAW_Wave_CO2_16_Speed[50];
+extern uint16_t GMAW_Wave_CO2_16_Volt[50];
+extern uint8_t  GMAW_Wave_CO2_16_Inductor[50];
+extern uint16_t GMAW_Wave_CO2_16_Vc[50];
+extern uint8_t  GMAW_Wave_CO2_16_VSLOPE[50];
+
+/*	MAG 1.0	*/
+extern uint16_t GMAW_Wave_MAG_10_Speed[50];
+extern uint16_t GMAW_Wave_MAG_10_Volt[50];
+extern uint8_t  GMAW_Wave_MAG_10_Inductor[50];
+extern uint16_t GMAW_Wave_MAG_10_Vc[50];
+extern uint8_t  GMAW_Wave_MAG_10_VSLOPE[50];
+
+/* MAG	1.2 */
+extern uint16_t GMAW_Wave_MAG_12_Speed[50];
+extern uint16_t GMAW_Wave_MAG_12_Volt[50];
+extern uint8_t  GMAW_Wave_MAG_12_Inductor[50];
+extern uint16_t GMAW_Wave_MAG_12_Vc[50];
+extern uint8_t  GMAW_Wave_MAG_12_VSLOPE[50];
+
+/* MAG 1.6 */
+extern uint16_t GMAW_Wave_MAG_16_Speed[50];
+extern uint16_t GMAW_Wave_MAG_16_Volt[50];
+extern uint8_t  GMAW_Wave_MAG_16_Inductor[50];
+extern uint16_t GMAW_Wave_MAG_16_Vc[50];
+extern uint8_t  GMAW_Wave_MAG_16_VSLOPE[50];
+
+/*	FLUX CO2 1.2 */
+extern uint16_t GMAW_Flux_CO2_12_Speed[50];
+extern uint16_t GMAW_Flux_CO2_12_Volt[50];
+extern uint8_t GMAW_Flux_CO2_12_Inductor[50];
+extern uint16_t GMAW_Flux_CO2_12_Vc[50];
+extern uint8_t GMAW_Flux_CO2_12_VSLOPE[50];
+
+/*	FLUX CO2 1.6 */
+extern uint16_t GMAW_Flux_CO2_16_Speed[50];
+extern uint16_t GMAW_Flux_CO2_16_Volt[50];
+extern uint8_t GMAW_Flux_CO2_16_Inductor[50];
+extern uint16_t GMAW_Flux_CO2_16_Vc[50];
+extern uint8_t GMAW_Flux_CO2_16_VSLOPE[50];
+
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

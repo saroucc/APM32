@@ -317,9 +317,9 @@ int main(void)
 	ADC1:		Regular Conv:	
 												RANK 1 :PA0 -> FIEP
 					Inject	Conv:
-												RANK 1 :PA1 -> MTRP/L
-												RANK 2 :PA2 -> PWRV/I
-												RANK 3: PC3	-> temp/V
+												RANK 1 :PA1 -> L
+												RANK 2 :PA2 -> I
+												RANK 3: PC3	-> V
 
 	ADC2:		Regular Conv:	
 												RANK 1 :PC4 -> OUTV2
@@ -357,6 +357,7 @@ int main(void)
 	
 	ALLSTATE_Set ^=0x0001;
 		
+	HAL_Delay(2000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -964,7 +965,7 @@ void Get_FB_FUN(void)
 	
 	/* SA Function  */
 	if(Wave_control_signal==1){
-		if(FB_OUTV_NUM*5/4<Gas_a.weld_volt-650){		//750 +BBR 650
+		if(FB_OUTV_NUM*5/4<Gas_a.weld_volt-750){		//750+BBR 	650
 			if(SA_Prev==1){
 				HAL_GPIO_WritePin(GPIOA,GPIO_PIN_7,GPIO_PIN_SET);
 			
@@ -1012,13 +1013,13 @@ void Get_FB_FUN(void)
 				Short_circuit_signal=1;
 			}
 			
-//			//BBR 
-//			if(edge_count_it>(220-Gas_a.weld_vslope*8) && Gas_a.weld_vslope>0 &&  Short_circuit_signal==0){
-//				if((edge_count_it+1)%10==0)
-//					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
-//				if(edge_count_it%10==0)
-//					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
-//			}
+			//BBR 
+			if(edge_count_it>(220-Gas_a.weld_vslope*8) && Gas_a.weld_vslope>0 &&  Short_circuit_signal==0){
+				if((edge_count_it+1)%10==0)
+					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
+				if(edge_count_it%10==0)
+					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
+			}
 			
 			edge_count_it++;	
 		}
@@ -1256,7 +1257,7 @@ void Get_SP_FUN()
 		JS_Detec_Back=0;
 	
 	
-	if(HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_6)==GPIO_PIN_RESET){		//Wave Switch  	
+	if(HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_6)==GPIO_PIN_SET){		//Wave Switch  	
 		if(Wave_control_signal==1) Wave_control_signal=0;
 	}
 	else{														//不接线
@@ -1672,7 +1673,7 @@ void Weld_ERROR_Handler(void)
 	GMAW_State=GMAW_ERROR;
 	}
 	/*		过压保护		*/
-	
+	 
 	/*		欠压保护		*/
 	
 	/*		MIRP		*/

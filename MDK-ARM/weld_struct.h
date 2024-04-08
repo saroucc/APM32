@@ -42,14 +42,14 @@ const uint8_t GMAW_GAS_Bbk[10];			// ’ª°  ±º‰
 //const uint8_t GMAW_Flat_MAG_12_VSLOPE[50];
 
 
-/*  CO2  1.2   */
+/*  CO2  1.0   */
 const uint16_t GMAW_Wave_CO2_10_Speed[50];
 const uint16_t GMAW_Wave_CO2_10_Volt[50];
 const uint8_t  GMAW_Wave_CO2_10_Inductor[50];
 const uint16_t GMAW_Wave_CO2_10_Vc[50];
 const uint8_t  GMAW_Wave_CO2_10_VSLOPE[50];
 
-/* CO2 1.4  */
+/* CO2 1.2  */
 const uint16_t GMAW_Wave_CO2_12_Speed[50];
 const uint16_t GMAW_Wave_CO2_12_Volt[50];
 const uint8_t  GMAW_Wave_CO2_12_Inductor[50];
@@ -63,14 +63,14 @@ const uint8_t  GMAW_Wave_CO2_16_Inductor[50];
 const uint16_t GMAW_Wave_CO2_16_Vc[50];
 const uint8_t  GMAW_Wave_CO2_16_VSLOPE[50];
 
-/*	MAG 1.2	*/
+/*	MAG 1.0	*/
 const uint16_t GMAW_Wave_MAG_10_Speed[50];
 const uint16_t GMAW_Wave_MAG_10_Volt[50];
 const uint8_t  GMAW_Wave_MAG_10_Inductor[50];
 const uint16_t GMAW_Wave_MAG_10_Vc[50];
 const uint8_t  GMAW_Wave_MAG_10_VSLOPE[50];
 
-/* MAG	1.4 */
+/* MAG	1.2 */
 const uint16_t GMAW_Wave_MAG_12_Speed[50];
 const uint16_t GMAW_Wave_MAG_12_Volt[50];
 const uint8_t  GMAW_Wave_MAG_12_Inductor[50];
@@ -78,11 +78,11 @@ const uint16_t GMAW_Wave_MAG_12_Vc[50];
 const uint8_t  GMAW_Wave_MAG_12_VSLOPE[50];
 
 /* MAG 1.6 */
-const uint16_t GMAW_Flat_MAG_16_Speed[50];
+const uint16_t GMAW_Wave_MAG_16_Speed[50];
 const uint16_t GMAW_Wave_MAG_16_Volt[50];
-const uint8_t  GMAW_Flat_MAG_16_Inductor[50];
-const uint16_t GMAW_Flat_MAG_16_Vc[50];
-const uint8_t  GMAW_Flat_MAG_16_VSLOPE[50];
+const uint8_t  GMAW_Wave_MAG_16_Inductor[50];
+const uint16_t GMAW_Wave_MAG_16_Vc[50];
+const uint8_t  GMAW_Wave_MAG_16_VSLOPE[50];
 
 /*	FLUX CO2 1.2 */
 const uint16_t GMAW_Flux_CO2_12_Speed[50];

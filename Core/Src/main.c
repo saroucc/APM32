@@ -146,9 +146,9 @@ volatile uint8_t FEED_Growth_Signal=0;		//1->ON 0->OFF
 volatile uint16_t FB_FIEP_I=0;
 volatile int16_t FB_FIEP_D=0;
 
-volatile uint8_t HQ_Detec_Back=0;
-volatile uint8_t JS_Detec_Back=0;
-volatile uint8_t ICOK_Detec_Back=0;
+uint8_t HQ_Detec_Back=0;
+uint8_t JS_Detec_Back=0;
+uint8_t ICOK_Detec_Back=0;
 
 uint8_t HQ_temp[10]={0};
 uint8_t JS_temp[10]={0};
@@ -168,12 +168,12 @@ float Crt_div = 0;
 float Vol_div = 0;
 float Res_div = 0;
 
- GAS_WELDING_DATA Gas_a;
-uint16_t* GMAW_GAS_Diam_Speed;
-uint16_t* GMAW_GAS_Diam_Volt;
-uint16_t* GMAW_GAS_Diam_Vc;
-uint8_t* GMAW_GAS_Diam_Inductor;
-uint8_t* GMAW_GAS_Diam_VSLOPE;
+GAS_WELDING_DATA Gas_a;
+uint16_t* GMAW_GAS_Diam_Speed=NULL;
+uint16_t* GMAW_GAS_Diam_Volt=NULL;
+uint16_t* GMAW_GAS_Diam_Vc=NULL;
+uint8_t* GMAW_GAS_Diam_Inductor=NULL;
+uint8_t* GMAW_GAS_Diam_VSLOPE=NULL;
 
 
 //uint8_t i2c_temp=0;
@@ -1044,7 +1044,6 @@ void Get_FB_FUN(void)
 	
 	}
 	
-	
 //	HAL_GPIO_WritePin(GPIOA,GPIO_PIN_7,GPIO_PIN_RESET);	
 }
 
@@ -1108,7 +1107,6 @@ void Get_SP_FUN()
 				Gas_a.weld_Inductor=ST_EPWM_Container-ST_EPWM_ADJUST;
 		}
 		
-	
 	}
 	
 	if(1)
@@ -1661,6 +1659,25 @@ void Uart_Handler_FUN(void)
 	if(1)
 		Wave_control_signal=1;
 	
+}
+
+void Weld_ERROR_Handler(void)
+{
+	/*		温度保护		*/
+	if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13)==GPIO_PIN_SET){
+	GMAW_State=GMAW_ERROR;
+	}
+	/*		缺相保护		*/
+	if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_2)==GPIO_PIN_RESET){
+	GMAW_State=GMAW_ERROR;
+	}
+	/*		过压保护		*/
+	
+	/*		欠压保护		*/
+	
+	/*		MIRP		*/
+
+	/*		PWRV		*/
 	
 }
 

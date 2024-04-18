@@ -125,6 +125,13 @@ volatile uint16_t FB_OUTI_NUM=0;
 uint16_t FB_OUTV[5]={0};
 uint16_t FB_OUTV_PACK[15]={0};
 volatile uint16_t FB_OUTV_NUM=0;
+
+uint16_t FB_MTRP[5]={0};
+uint16_t FB_MTRP_NUM=0;
+uint16_t FB_PWRV[5]={0};
+uint16_t FB_PWRV_NUM=0;
+uint16_t FB_TIIR[5]={0};
+uint16_t FB_TIIR_NUM=0;
 //------------ST-----------
 uint16_t ST_FPWM[5]={0};		
 volatile uint16_t ST_FPWM_NUM=0;		
@@ -175,6 +182,8 @@ uint16_t* GMAW_GAS_Diam_Vc=NULL;
 uint8_t* GMAW_GAS_Diam_Inductor=NULL;
 uint8_t* GMAW_GAS_Diam_VSLOPE=NULL;
 
+uint8_t Error_Code=0;
+uint16_t Error_Hold_count=0;
 
 //uint8_t i2c_temp=0;
 //HAL_StatusTypeDef i2c_state=0;
@@ -234,6 +243,7 @@ TASK_COMPONENTS Task_Comps[]=		//10 us per/count
 	{0,500,500,Get_SP_FUN},
 //	{0,1,1,IT_Respond_FUN}
 //	{0,2000,2000,Uart_Handler_FUN}
+	{0,15,15,Weld_ERROR_Handler}
 };
 
 uint8_t Tasks_Max = sizeof(Task_Comps)/sizeof(Task_Comps[0]);
@@ -258,6 +268,7 @@ void Task_Pro_Handler_Callback(void)
   * @retval int
   */
 int main(void)
+ 
 {
   /* USER CODE BEGIN 1 */
 
@@ -325,10 +336,11 @@ int main(void)
 												RANK 1 :PC4 -> OUTV2
 					Inject	Conv:
 												RANK 1 :PC5 -> OUTI2
-												RANK 2 :
-												RANK 3: 
+												RANK 2 :PA1 ->MTRP
+												RANK 3 :PA2 ->PWRV
+												RANK 4 :PC3 ->TIIR
 	
-	Renewal in 2023/12/25
+	Renewal in 2024/4/9
 	------------------------------------------------------------------------------*/
 	
 	HAL_DAC_SetValue(&hdac,DAC_CHANNEL_1,DAC_ALIGN_12B_R,DAC1_Value);
@@ -523,7 +535,7 @@ static void MX_ADC2_Init(void)
   /** Common config
   */
   hadc2.Instance = ADC2;
-  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc2.Init.ContinuousConvMode = ENABLE;
   hadc2.Init.DiscontinuousConvMode = DISABLE;
   hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -538,12 +550,39 @@ static void MX_ADC2_Init(void)
   */
   sConfigInjected.InjectedChannel = ADC_CHANNEL_15;
   sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
-  sConfigInjected.InjectedNbrOfConversion = 1;
+  sConfigInjected.InjectedNbrOfConversion = 4;
   sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_41CYCLES_5;
   sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
   sConfigInjected.AutoInjectedConv = ENABLE;
   sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
   sConfigInjected.InjectedOffset = 0;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_2;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_13;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_4;
   if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
   {
     Error_Handler();
@@ -914,7 +953,11 @@ void Get_FB_FUN(void)
 	FB_FIEP_NUM=(FB_FIEP[0]+FB_FIEP[1]+FB_FIEP[2]+FB_FIEP[3]+FB_FIEP[4])/5;		//Average Cap
 	FB_OUTI_NUM=(FB_OUTI[0]+FB_OUTI[1]+FB_OUTI[2]+FB_OUTI[3]+FB_OUTI[4])/5;		//Average Set
 	FB_OUTV_NUM=(FB_OUTV[0]+FB_OUTV[1]+FB_OUTV[2]+FB_OUTV[3]+FB_OUTV[4])/5;	
-
+	
+	FB_MTRP_NUM=HAL_ADCEx_InjectedGetValue(&hadc2,ADC_INJECTED_RANK_2);
+	FB_PWRV_NUM=HAL_ADCEx_InjectedGetValue(&hadc2,ADC_INJECTED_RANK_3);
+	FB_TIIR_NUM=HAL_ADCEx_InjectedGetValue(&hadc2,ADC_INJECTED_RANK_4);
+	
 	//----------Average FeedBack function-----------
 	FB_FIEP_TEMP=0;	
 	FB_OUTI_TEMP=0;
@@ -954,18 +997,18 @@ void Get_FB_FUN(void)
 	IOFB_IT=(IOFB_IT+1)%10;
 	if(ICOK_state_temp>6){
 		ICOK_Detec_Back=1;
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_RESET);
 	}
 	else{
 		ICOK_Detec_Back=0;
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_SET);
 	}
 	
 	
 	
 	/* SA Function  */
-	if(Wave_control_signal==1){
-		if(FB_OUTV_NUM*5/4<Gas_a.weld_volt-750){		//750+BBR 	650
+	if(Wave_control_signal==1&&GMAW_State==GMAW_STABILIZE){
+		if(FB_OUTV_NUM*5/4<Gas_a.weld_volt-650){		//750+BBR 	650
 			if(SA_Prev==1){
 				HAL_GPIO_WritePin(GPIOA,GPIO_PIN_7,GPIO_PIN_SET);
 			
@@ -1014,12 +1057,12 @@ void Get_FB_FUN(void)
 			}
 			
 			//BBR 
-			if(edge_count_it>(220-Gas_a.weld_vslope*8) && Gas_a.weld_vslope>0 &&  Short_circuit_signal==0){
-				if((edge_count_it+1)%10==0)
-					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
-				if(edge_count_it%10==0)
-					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
-			}
+//			if(edge_count_it>(220-Gas_a.weld_vslope*8) && Gas_a.weld_vslope>0 &&  Short_circuit_signal==0){
+//				if((edge_count_it+1)%10==0)
+//					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_SET);
+//				if(edge_count_it%10==0)
+//					HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);
+//			}
 			
 			edge_count_it++;	
 		}
@@ -1066,14 +1109,14 @@ void Get_SP_FUN()
 	ST_FPWM_NUM=(ST_FPWM[0]+ST_FPWM[1]+ST_FPWM[2]+ST_FPWM[3]+ST_FPWM[4])/5;//I_Cai	
 	
 	
-	
-	if(ST_FPWM_NUM>300)
-		ST_FPWM_ADJUST=(ST_FPWM_NUM*0.157f+5.73)/2-24;
+	if(ST_FPWM_NUM>365)
+		ST_FPWM_ADJUST=(ST_FPWM_NUM/8+4.325)/2-25;
 	else
 		ST_FPWM_ADJUST=0;
 	if(ST_FPWM_ADJUST>196) ST_FPWM_ADJUST=196;
 	
-	//
+
+//	ST_FPWM_ADJUST=52;
 	
 	//take array form datesheet
 	if(0){
@@ -1086,11 +1129,11 @@ void Get_SP_FUN()
 		Gas_a.weld_vslope=GMAW_GAS_VSLOPE[ST_FPWM_ADJUST/4];
 		
 		
-		if(ST_OTDA_NUM>=845)
-			Gas_a.weld_volt=Gas_a.weld_volt+(ST_OTDA_NUM-845)/3;
+		if(ST_OTDA_NUM>=1138)		//4.15 845->1138
+			Gas_a.weld_volt=Gas_a.weld_volt+(ST_OTDA_NUM-1138)*(ST_FPWM_ADJUST*0.01+0.25);
 		else{
-			if(Gas_a.weld_volt>845-ST_OTDA_NUM)
-				Gas_a.weld_volt=Gas_a.weld_volt-(845-ST_OTDA_NUM)/3;
+			if(Gas_a.weld_volt>1138-ST_OTDA_NUM)
+				Gas_a.weld_volt=Gas_a.weld_volt-(1138-ST_OTDA_NUM)*(ST_FPWM_ADJUST*0.01+0.25);
 			else
 				Gas_a.weld_volt=0;
 		}	
@@ -1200,14 +1243,14 @@ void Get_SP_FUN()
 		Gas_a.weld_vslope=GMAW_GAS_Diam_VSLOPE[ST_FPWM_ADJUST/4];
 		
 		
-		if(ST_OTDA_NUM>=845)
-			Gas_a.weld_volt=Gas_a.weld_volt+(ST_OTDA_NUM-845)/3;
+		if(ST_OTDA_NUM>=1138)		//4.15 845->1138
+			Gas_a.weld_volt=Gas_a.weld_volt+(ST_OTDA_NUM-1138)*(ST_FPWM_ADJUST*0.005+0.25);
 		else{
-			if(Gas_a.weld_volt>845-ST_OTDA_NUM)
-				Gas_a.weld_volt=Gas_a.weld_volt-(845-ST_OTDA_NUM)/3;
+			if(Gas_a.weld_volt>1138-ST_OTDA_NUM)
+				Gas_a.weld_volt=Gas_a.weld_volt-(1138-ST_OTDA_NUM)*(ST_FPWM_ADJUST*0.005+0.25);
 			else
 				Gas_a.weld_volt=0;
-		}	
+		}
 		
 		if(ST_EPWM_NUM>2000){
 			ST_EPWM_ADJUST=(ST_EPWM_NUM-2000)/20;
@@ -1315,7 +1358,7 @@ void Switch_State_FUN()
 			HAL_DAC_SetValue(&hdac,DAC_CHANNEL_1,DAC_ALIGN_12B_R,Gas_a.weld_volt/4+1600);
 			
 			//ARC RESET
-			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_RESET);		
+//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_SET);		
 			
 			State_Delay_count++;
 						
@@ -1339,7 +1382,10 @@ void Switch_State_FUN()
 			
 			HAL_DAC_SetValue(&hdac,DAC_CHANNEL_1,DAC_ALIGN_12B_R,Gas_a.weld_volt/4+1600);
 			
+//			State_Delay_count++;
+//			if(State_Delay_count>=1000)
 				GMAW_State++;
+			
 			
 			if(HQ_Detec_Back==0)	GMAW_State=GMAW_STANDBY;	//焊枪检测
 				break;
@@ -1376,7 +1422,7 @@ void Switch_State_FUN()
 			
 			if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_14)==SET&&FB_OUTV_NUM>=100&&FB_OUTI_NUM>=100)	//IC_OK/FB_I/FB_V
 			{
-				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_SET);	//ARC signal C->S
+//				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_RESET);	//ARC signal C->S
 				ALLSTATE_Set ^=0x0010;
 				GMAW_State++;
 			}
@@ -1412,9 +1458,12 @@ void Switch_State_FUN()
 				inter_arc_signal=1;
 			if(inter_arc_signal==1){
 				State_Delay_count++;
-				if((State_Delay_count-State_Delay_contain>=150)&&FB_OUTI_NUM<200){
+				if(State_Delay_count-State_Delay_contain >= 150){
+					if(FB_OUTI_NUM<200){
 						State_Delay_count=0;
 						inter_arc_signal=0;
+						
+						
 						State_Delay_contain=0;
 					}
 					else{
@@ -1423,6 +1472,7 @@ void Switch_State_FUN()
 						State_Delay_count=0;
 						inter_arc_signal=0;
 					}
+				}
 			}
 			
 			//DA heart beat
@@ -1483,9 +1533,9 @@ void Switch_State_FUN()
 				HAL_GPIO_WritePin(GPIOC,GPIO_PIN_9,GPIO_PIN_RESET);	//deleta
 			}				
 			
-			//TEMPER Detec
-			if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13)==GPIO_PIN_SET)
-				GMAW_State=GMAW_ERROR;
+//			//TEMPER Detec
+//			if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13)==GPIO_PIN_SET)
+//				GMAW_State=GMAW_ERROR;
 			
 			
 			//DA heart beat
@@ -1565,8 +1615,57 @@ void Switch_State_FUN()
 				FPWM_State=0;
 			}
 			
-			if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13)==GPIO_PIN_RESET)
-				GMAW_State=GMAW_STANDBY;
+			
+			switch(Error_Code)
+			{
+				case 1:		//0001
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+					break;
+				case 2:		//0010
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+					break;
+				case 3:		//0011
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+					break;
+				case 4:		//0100
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+					break;
+				case 5:		//0101
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+					break;
+				case 6:		//0110
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+					break;
+				case 7:		//0111
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+					break;
+			}
+			
+	
+			
+//			if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13)==GPIO_PIN_RESET)
+//				GMAW_State=GMAW_STANDBY;
 			
 			break;
 		}	
@@ -1585,7 +1684,7 @@ void Get_State_FUN(void)
 				htim1.Instance->CCR2=EPWM_TEMP;
 			}
 			
-			htim1.Instance->CCR3=AOV_SAI/20;
+			htim1.Instance->CCR3=AOV_SAI/22.8;
 			htim1.Instance->CCR4=AOC_SAI/20;
 		}
 				
@@ -1664,22 +1763,93 @@ void Uart_Handler_FUN(void)
 
 void Weld_ERROR_Handler(void)
 {
+	
 	/*		温度保护		*/
 	if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13)==GPIO_PIN_SET){
-	GMAW_State=GMAW_ERROR;
+		GMAW_State=GMAW_ERROR;
+		Error_Code=1;
+	}
+	else{
+		if(Error_Code==1){
+		Error_Code=0;
+		GMAW_State=GMAW_STANDBY;
+		}
 	}
 	/*		缺相保护		*/
-	if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_2)==GPIO_PIN_RESET){
-	GMAW_State=GMAW_ERROR;
+	if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_2)==GPIO_PIN_SET){
+		GMAW_State=GMAW_ERROR;
+		Error_Code=2;
+	}
+	else{
+		if(Error_Code==2){
+		Error_Code=0;
+		GMAW_State=GMAW_STANDBY;
+		}
 	}
 	/*		过压保护		*/
-	 
+	if(FB_TIIR_NUM>3000){
+		GMAW_State=GMAW_ERROR;
+		Error_Code=3;
+	}
+	else{
+		if(Error_Code==3){ 
+		Error_Code=0;
+		GMAW_State=GMAW_STANDBY;
+		}
+	}
 	/*		欠压保护		*/
-	
-	/*		MIRP		*/
-
+//	if(FB_TIIR_NUM<300){
+//		GMAW_State=GMAW_ERROR;
+//		Error_Code=4;
+//	}
+//	else{
+//		if(Error_Code==4){
+//		Error_Code=0;
+//		GMAW_State=GMAW_STANDBY;
+//		}
+//	}
+	/*		MTRP		*/
+	if(FB_MTRP_NUM>3000){
+		GMAW_State=GMAW_ERROR;
+		Error_Code=5;
+	}
+	else{
+		if(Error_Code==5){
+		Error_Code=0;
+		GMAW_State=GMAW_STANDBY;
+		}
+	}
 	/*		PWRV		*/
-	
+	if(FB_PWRV_NUM>3000){
+		GMAW_State=GMAW_ERROR;
+		Error_Code=6;
+	}
+	else{
+		if(Error_Code==6){ 
+		Error_Code=0;
+		GMAW_State=GMAW_STANDBY;
+		}
+	}
+	/*		电流保护 */
+	if(FB_OUTI_NUM>3500){
+		if(Error_Hold_count>=120){		//200ms 400*500us
+			GMAW_State=GMAW_ERROR;
+			Error_Hold_count=0;
+			Error_Code=7;
+		}
+		else
+			Error_Hold_count++;
+	}
+	else{
+		if(Error_Hold_count>0)	
+			Error_Hold_count--;
+		else
+			Error_Hold_count=0;			
+	}
+	if(Error_Hold_count<20&&Error_Code==7){
+		Error_Code=0;
+		GMAW_State=GMAW_STANDBY;
+	}
 }
 
 

@@ -102,18 +102,15 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     PC0     ------> ADC1_IN10
     PC1     ------> ADC1_IN11
     PC2     ------> ADC1_IN12
-    PC3     ------> ADC1_IN13
     PA0-WKUP     ------> ADC1_IN0
-    PA1     ------> ADC1_IN1
-    PA2     ------> ADC1_IN2
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|T_IN3_Pin;
+    GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = FIEP_Pin|MTRP_Pin|PWRV_Pin;
+    GPIO_InitStruct.Pin = FIEP_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_GPIO_Init(FIEP_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN ADC1_MspInit 1 */
 
@@ -128,13 +125,21 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     __HAL_RCC_ADC2_CLK_ENABLE();
 
     __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
     /**ADC2 GPIO Configuration
+    PC3     ------> ADC2_IN13
+    PA1     ------> ADC2_IN1
+    PA2     ------> ADC2_IN2
     PC4     ------> ADC2_IN14
     PC5     ------> ADC2_IN15
     */
-    GPIO_InitStruct.Pin = OUTV2_Pin|OUTI2_Pin;
+    GPIO_InitStruct.Pin = T_IN3_Pin|OUTV2_Pin|OUTI2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = MTRP_Pin|PWRV_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN ADC2_MspInit 1 */
 
@@ -163,14 +168,11 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     PC0     ------> ADC1_IN10
     PC1     ------> ADC1_IN11
     PC2     ------> ADC1_IN12
-    PC3     ------> ADC1_IN13
     PA0-WKUP     ------> ADC1_IN0
-    PA1     ------> ADC1_IN1
-    PA2     ------> ADC1_IN2
     */
-    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|T_IN3_Pin);
+    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2);
 
-    HAL_GPIO_DeInit(GPIOA, FIEP_Pin|MTRP_Pin|PWRV_Pin);
+    HAL_GPIO_DeInit(FIEP_GPIO_Port, FIEP_Pin);
 
   /* USER CODE BEGIN ADC1_MspDeInit 1 */
 
@@ -185,10 +187,15 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     __HAL_RCC_ADC2_CLK_DISABLE();
 
     /**ADC2 GPIO Configuration
+    PC3     ------> ADC2_IN13
+    PA1     ------> ADC2_IN1
+    PA2     ------> ADC2_IN2
     PC4     ------> ADC2_IN14
     PC5     ------> ADC2_IN15
     */
-    HAL_GPIO_DeInit(GPIOC, OUTV2_Pin|OUTI2_Pin);
+    HAL_GPIO_DeInit(GPIOC, T_IN3_Pin|OUTV2_Pin|OUTI2_Pin);
+
+    HAL_GPIO_DeInit(GPIOA, MTRP_Pin|PWRV_Pin);
 
   /* USER CODE BEGIN ADC2_MspDeInit 1 */
 

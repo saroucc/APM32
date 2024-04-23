@@ -1684,8 +1684,8 @@ void Get_State_FUN(void)
 				htim1.Instance->CCR2=EPWM_TEMP;
 			}
 			
-			htim1.Instance->CCR3=AOV_SAI/22.8;
-			htim1.Instance->CCR4=AOC_SAI/20;
+			htim1.Instance->CCR3=AOV_SAI/24;
+			htim1.Instance->CCR4=AOC_SAI/24;
 		}
 				
 }
@@ -1787,7 +1787,7 @@ void Weld_ERROR_Handler(void)
 		}
 	}
 	/*		过压保护		*/
-	if(FB_TIIR_NUM>3000){
+	if(FB_TIIR_NUM>3330){
 		GMAW_State=GMAW_ERROR;
 		Error_Code=3;
 	}
@@ -1798,18 +1798,18 @@ void Weld_ERROR_Handler(void)
 		}
 	}
 	/*		欠压保护		*/
-//	if(FB_TIIR_NUM<300){
-//		GMAW_State=GMAW_ERROR;
-//		Error_Code=4;
-//	}
-//	else{
-//		if(Error_Code==4){
-//		Error_Code=0;
-//		GMAW_State=GMAW_STANDBY;
-//		}
-//	}
+	if(FB_TIIR_NUM<2172&&DA_State==1){
+		GMAW_State=GMAW_ERROR;
+		Error_Code=4;
+	}
+	else{
+		if(Error_Code==4){
+		Error_Code=0;
+		GMAW_State=GMAW_STANDBY;
+		}
+	}
 	/*		MTRP		*/
-	if(FB_MTRP_NUM>3000){
+	if(FB_MTRP_NUM>2860){
 		GMAW_State=GMAW_ERROR;
 		Error_Code=5;
 	}
@@ -1820,7 +1820,7 @@ void Weld_ERROR_Handler(void)
 		}
 	}
 	/*		PWRV		*/
-	if(FB_PWRV_NUM>3000){
+	if(FB_PWRV_NUM>2800||FB_PWRV_NUM<1800){
 		GMAW_State=GMAW_ERROR;
 		Error_Code=6;
 	}
@@ -1831,8 +1831,8 @@ void Weld_ERROR_Handler(void)
 		}
 	}
 	/*		电流保护 */
-	if(FB_OUTI_NUM>3500){
-		if(Error_Hold_count>=120){		//200ms 400*500us
+	if(FB_OUTI_NUM>3232){
+		if(Error_Hold_count>=1200){		//200ms 400*500us
 			GMAW_State=GMAW_ERROR;
 			Error_Hold_count=0;
 			Error_Code=7;
